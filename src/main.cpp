@@ -10,7 +10,7 @@ enum Badge { ROUGE, JAUNE, BLEU, BLEU2, BLEU3, CARTE, NON_RECONNU };
 
 const unsigned char rouge[] = {2,'0','E','0','0','4','C','5','7','0','A','1','F',3};
 const unsigned char jaune[] = {2,'0','9','0','0','2','E','1','9','8','0','B','E',3};
-const unsigned char bleu[]  = {2,'1','5','0','0','9','1','9','0','8','5','9','1',3};
+const unsigned char bleu [] = {2,'1','5','0','0','9','1','9','0','8','5','9','1',3};
 const unsigned char bleu2[] = {2,'0','0','0','0','1','A','C','3','1','3','C','A',3};
 const unsigned char bleu3[] = {2,'1','5','0','0','8','9','1','7','4','8','C','3',3};
 const unsigned char carte[] = {2,'3','8','0','0','7','1','2','6','1','F','7','0',3};
