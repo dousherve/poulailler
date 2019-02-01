@@ -6,7 +6,7 @@
 #define RX_RFID_PIN 2
 #define TX_RFID_PIN 3
 
-enum Badge { ROUGE, JAUNE, BLEU, BLEU2, BLEU3, CARTE, NON_RECONNU };
+enum Badge { ROUGE = 0, JAUNE, BLEU, BLEU2, BLEU3, CARTE, NON_RECONNU };
 
 const unsigned char rouge[] = {2,'0','E','0','0','4','C','5','7','0','A','1','F',3};
 const unsigned char jaune[] = {2,'0','9','0','0','2','E','1','9','8','0','B','E',3};
@@ -18,12 +18,14 @@ const unsigned char carte[] = {2,'3','8','0','0','7','1','2','6','1','F','7','0'
 // Déclaration des variables globales
 
 Badge b;
-bool poules[6];
-unsigned int nbPoules = 0;
+bool poules[6] = {false, false, false, false, false, false};
+int nbPoules = 0;
 
 SoftwareSerial RFID(RX_RFID_PIN, TX_RFID_PIN);
 unsigned char buffer[64];
 int count = 0;
+
+String response = "";
 
 // Prototypes des fonctions
 
@@ -31,7 +33,10 @@ void readRfidBuffer();
 Badge getBadge();
 void clearBufferArray();
 bool arrEquals(unsigned char arr[]);
-String getChickenName();
+String getChickenName(int b);
+String processRequest();
+
+long temps = 0;
 
 void setup() {
     RFID.begin(9600);
@@ -51,7 +56,7 @@ void loop() {
       poules[b] = !poules[b];
       poules[b] ? nbPoules++ : nbPoules--;
 
-      Serial.println(getChickenName() + " est " + (poules[b] ? "rentrée" : "sortie")
+      Serial.println(getChickenName(b) + " est " + (poules[b] ? "rentrée" : "sortie")
                      + "! Il y a maintenant " + nbPoules + " poule" + (nbPoules > 1 ? "s." : "."));
 
       if (nbPoules == 6) {
@@ -66,6 +71,12 @@ void loop() {
 
     clearBufferArray();
     count = 0;
+  }
+
+  if (millis() - temps >= 1000) {
+    Serial.println(processRequest());
+
+    temps = millis();
   }
 
   // Délai avant la prochaine boucle (erreurs de lecture du RFID sinon, 50ms minimum)
@@ -109,9 +120,9 @@ bool arrEquals(unsigned char arr[]) {
 
 }
 
-String getChickenName() {
+String getChickenName(int b) {
 
-  switch (getBadge()) {
+  switch (b) {
     case ROUGE:
       return "Tchiki";
       break;
@@ -152,4 +163,27 @@ Badge getBadge() {
     return NON_RECONNU;
   }
 
+}
+
+String processRequest() {
+
+  response = "{\"missing\": [";
+
+  for (int i = 0; i < 6; i++) {
+    if (!poules[i]) {
+      response += "\"";
+      response += getChickenName(i);
+      if (i < 5)
+      {
+        response += "\", ";
+      } else {
+        response += "\"";
+      }
+    }
+  }
+
+  response += "], \"count\": ";
+  response += String(6 - nbPoules) + "}";
+
+  return response;
 }
