@@ -3,8 +3,11 @@
 
 // Constantes & Enumérations
 
-#define RX_RFID_PIN 2
-#define TX_RFID_PIN 3
+#define RX_RFID_PIN 4
+#define TX_RFID_PIN 5
+
+#define RX_BT_PIN 2
+#define TX_BT_PIN 3
 
 enum Badge { ROUGE = 0, JAUNE, BLEU, BLEU2, BLEU3, CARTE, NON_RECONNU };
 
@@ -25,25 +28,32 @@ SoftwareSerial RFID(RX_RFID_PIN, TX_RFID_PIN);
 unsigned char buffer[64];
 int count = 0;
 
+SoftwareSerial BT(RX_BT_PIN, TX_BT_PIN);
+char bt_buffer[64];
+int bt_count = 0;
+
 String response = "";
 
 // Prototypes des fonctions
 
 void readRfidBuffer();
+void readBtBuffer();
 Badge getBadge();
 void clearBufferArray();
+void clearBtBufferArray();
 bool arrEquals(unsigned char arr[]);
 String getChickenName(int b);
 String processRequest();
 
-long temps = 0;
-
 void setup() {
     RFID.begin(9600);
+    BT.begin(9600);
     Serial.begin(9600);
 }
 
 void loop() {
+
+  // Lecture du badge, gestion du nombre de poules
 
   if (RFID.available()) {
 
@@ -73,14 +83,25 @@ void loop() {
     count = 0;
   }
 
-  if (millis() - temps >= 1000) {
-    Serial.println(processRequest());
+  // Gestion des requêtes Bluetooth
 
-    temps = millis();
+  if (BT.available()) {
+
+    readBtBuffer();
+
+    if (strcmp(bt_buffer, "Allo") == 0)
+    {
+      BT.println(processRequest());
+    } else {
+      Serial.println(bt_buffer);
+    }
+
+    clearBtBufferArray();
+    bt_count = 0;
+
   }
 
   // Délai avant la prochaine boucle (erreurs de lecture du RFID sinon, 50ms minimum)
-
   delay(200);
 
   if (Serial.available())
@@ -100,11 +121,31 @@ void readRfidBuffer() {
 
 }
 
+void readBtBuffer() {
+
+  while(BT.available()) {
+    bt_buffer[bt_count] = BT.read();
+    bt_count++;
+    if(bt_count == 64)
+      break;
+  }
+
+}
+
 void clearBufferArray() {
 
   for (int i=0; i<count; i++)
   {
     buffer[i] = NULL;
+  }
+
+}
+
+void clearBtBufferArray() {
+
+  for (int i=0; i<bt_count; i++)
+  {
+    bt_buffer[i] = NULL;
   }
 
 }
