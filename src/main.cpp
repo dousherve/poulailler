@@ -30,7 +30,7 @@ const unsigned char carte[] = {2,'3','8','0','0','7','1','2','6','1','F','7','0'
 
 // ----------- Variables globales ------------
 Badge b;
-bool poules[6] = {false, false, false, false, false, false};
+bool poules[6] = {false, false, true, true, false, false};
 int nbPoules = 0;
 
 SoftwareSerial RFID(RX_RFID_PIN, TX_RFID_PIN);
@@ -40,7 +40,11 @@ int count = 0;
 IPAddress ip(192, 168, 1, 48);
 EthernetServer server(80);
 
-// Prototypes des fonctions
+// ======= DEBUG =======
+int debugIndex = 0;
+// =====================
+
+// -------- Prototypes des fonctions ----------
 
 void readRfidBuffer();
 void clearBufferArray();
@@ -49,7 +53,8 @@ bool bufferEquals(unsigned char arr[]);
 String getChickenName(int index);
 
 String generateRequestResponse();
-void handleHttpRequest();
+void handleDebugRequest();
+void handleHttpRequests();
 // -------------------------------------------
 
 void setup()
@@ -116,7 +121,7 @@ void loop()
   }
 
   // Gestion des requêtes HTTP
-  handleHttpRequest();
+  handleHttpRequests();
 
   // Délai avant la prochaine boucle (erreurs de lecture du RFID sinon, 50ms minimum)
   delay(200);
@@ -195,6 +200,9 @@ String getChickenName(int index)
     case CARTE:
       return "Bernadette";
       break;
+    default:
+      return "Poule inconnue.";
+      break;
   }
 }
 
@@ -222,10 +230,12 @@ String generateRequestResponse()
   return response;
 }
 
-void handleHttpRequest()
+void handleHttpRequests()
 {
   EthernetClient client = server.available();
-  if (client) {
+  String request = "";
+  if (client)
+  {
     Serial.println("New client");
     boolean currentLineIsBlank = true;
     while (client.connected())
@@ -234,7 +244,17 @@ void handleHttpRequest()
       {
         char c = client.read();
         Serial.write(c);
-        if (c == '\n' && currentLineIsBlank) {
+        request += c;
+        if (c == '\n' && currentLineIsBlank)
+        {
+          if (request.indexOf("debug") != -1)
+          {
+            client.println("HTTP/1.1 200 OK");
+            client.println("Connection: close");
+            handleDebugRequest();
+            break;
+          }
+
           client.println("HTTP/1.1 200 OK");
           client.println("Content-Type: application/json");
           client.println("Connection: close");
@@ -254,4 +274,15 @@ void handleHttpRequest()
     client.stop();
     Serial.println("Client disconnected");
   }
+}
+
+void handleDebugRequest()
+{
+  poules[debugIndex] = !poules[debugIndex];
+  poules[debugIndex] ? nbPoules++ : nbPoules--;
+
+  if (debugIndex == 6)
+    debugIndex = 0;
+  else
+    debugIndex++;
 }
