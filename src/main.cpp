@@ -30,7 +30,8 @@ const unsigned char carte[] = {2,'3','8','0','0','7','1','2','6','1','F','7','0'
 
 // ----------- Variables globales ------------
 Badge b;
-bool poules[6] = {false, false, true, true, false, false};
+
+bool poules[6];
 int nbPoules = 0;
 
 SoftwareSerial RFID(RX_RFID_PIN, TX_RFID_PIN);
@@ -53,12 +54,16 @@ bool bufferEquals(unsigned char arr[]);
 String getChickenName(int index);
 
 String generateRequestResponse();
-void handleDebugRequest();
 void handleHttpRequests();
 // -------------------------------------------
 
 void setup()
 {
+    for (int i=0; i < 6; i++)
+    {
+      poules[i] = false;
+    }
+
     Serial.begin(9600);
     RFID.begin(9600);
 
@@ -122,6 +127,31 @@ void loop()
 
   // Gestion des requêtes HTTP
   handleHttpRequests();
+
+  // DEBUG
+  if (Serial.available())
+  {
+    char c = Serial.read();
+    if (c >= 48 && c <= 53)
+    {
+      int i = (int) c - 48;
+      poules[i] = !poules[i];
+      for (int i=0; i < 6; i++)
+      {
+        Serial.print(poules[i] ? "Oui " : "Non ");
+      }
+      Serial.println("");
+      poules[i] ? nbPoules++ : nbPoules--;
+    }
+    else
+    {
+      for (int i=0; i < 6; i++)
+      {
+        Serial.print(poules[i] ? "Oui " : "Non ");
+      }
+      Serial.println("");
+    }
+  }
 
   // Délai avant la prochaine boucle (erreurs de lecture du RFID sinon, 50ms minimum)
   delay(200);
@@ -209,18 +239,19 @@ String getChickenName(int index)
 String generateRequestResponse()
 {
   String response = "{\"missing\": [";
+  bool isFirst = true;
 
   for (int i = 0; i < 6; i++)
   {
     if (!poules[i]) {
+      if (!isFirst)
+      {
+        response += ", ";
+      }
       response += "\"";
       response += getChickenName(i);
-      if (i < 5)
-      {
-        response += "\", ";
-      } else {
-        response += "\"";
-      }
+      response += "\"";
+      isFirst = false;
     }
   }
 
@@ -233,7 +264,6 @@ String generateRequestResponse()
 void handleHttpRequests()
 {
   EthernetClient client = server.available();
-  String request = "";
   if (client)
   {
     Serial.println("New client");
@@ -244,22 +274,15 @@ void handleHttpRequests()
       {
         char c = client.read();
         Serial.write(c);
-        request += c;
         if (c == '\n' && currentLineIsBlank)
         {
-          if (request.indexOf("debug") != -1)
-          {
-            client.println("HTTP/1.1 200 OK");
-            client.println("Connection: close");
-            handleDebugRequest();
-            break;
-          }
-
           client.println("HTTP/1.1 200 OK");
           client.println("Content-Type: application/json");
           client.println("Connection: close");
           client.println(); // Nouvelle ligne nécessaire (fin de l'en-tête de la réponse HTTP)
-          client.println(generateRequestResponse());
+          String r = generateRequestResponse();
+          Serial.println(r);
+          client.println(r);
           break;
         }
         if (c == '\n') {
@@ -274,15 +297,4 @@ void handleHttpRequests()
     client.stop();
     Serial.println("Client disconnected");
   }
-}
-
-void handleDebugRequest()
-{
-  poules[debugIndex] = !poules[debugIndex];
-  poules[debugIndex] ? nbPoules++ : nbPoules--;
-
-  if (debugIndex == 6)
-    debugIndex = 0;
-  else
-    debugIndex++;
 }
