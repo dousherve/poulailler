@@ -238,7 +238,8 @@ String getChickenName(int index)
 
 String generateRequestResponse()
 {
-  String response = "{\"missing\": [";
+  // String response = "{\"missing\": [";
+  String response = "[";
   bool isFirst = true;
 
   for (int i = 0; i < 6; i++)
@@ -255,8 +256,9 @@ String generateRequestResponse()
     }
   }
 
-  response += "], \"count\": ";
-  response += String(6 - nbPoules) + "}";
+  // response += "], \"count\": ";
+  // response += String(6 - nbPoules) + "}";
+  response += "]";
 
   return response;
 }
