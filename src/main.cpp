@@ -4,6 +4,8 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 
+// Nique ta mère
+
 // -------- Constantes & Enumérations --------
 #define RX_RFID_PIN 4
 #define TX_RFID_PIN 5
